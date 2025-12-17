@@ -11,10 +11,7 @@
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
-        "resolveJsonModule": true,
-        "types": [
-            "@una-ui/nuxt"
-        ]
+        "resolveJsonModule": true
     },
     "include": [
         ".nuxt/nuxt.d.ts",

@@ -1,13 +1,22 @@
 import {
     defineConfig,
+    presetUno,
     presetIcons,
     presetTypography,
     presetWebFonts,
+    transformerDirectives,
+    transformerVariantGroup,
 } from 'unocss'
-import { defaultConfig } from '@una-ui/nuxt/una.config'
+import { presetDaisy } from '@ameinhardt/unocss-preset-daisy'
 
-export default defaultConfig({
+
+export default defineConfig({
     presets: [
+        presetUno(),
+        presetDaisy({
+            themes: ['light', 'dark', 'cupcake', 'emerald', 'corporate', 'synthwave', 'cyberpunk', 'valentine', 'halloween', 'garden', 'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black', 'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee', 'winter', 'dim', 'nord', 'sunset'],
+            rtl: false,
+        }),
         presetIcons({
             scale: 1.2,
             cdn: 'https://esm.sh/',
@@ -20,5 +29,8 @@ export default defaultConfig({
             },
         }),
     ],
-    // Transformers are already included in defaultConfig
+    transformers: [
+        transformerDirectives(),
+        transformerVariantGroup(),
+    ],
 })

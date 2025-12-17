@@ -1,5 +1,5 @@
 import { db, claims, posts, notifications } from '~~/server/database'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
     // Check authentication
@@ -31,8 +31,10 @@ export default defineEventHandler(async (event) => {
     const existingClaim = await db
         .select()
         .from(claims)
-        .where(eq(claims.postId, postId))
-        .where(eq(claims.claimerId, session.user.id))
+        .where(and(
+            eq(claims.postId, postId),
+            eq(claims.claimerId, session.user.id)
+        ))
         .get()
 
     if (existingClaim) {

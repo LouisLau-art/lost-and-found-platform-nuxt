@@ -1,7 +1,4 @@
 export default defineAppConfig({
-    una: {
-        primary: 'yellow',
-        gray: 'zinc',
-        radius: 0.5,
-    }
+    // DaisyUI theme configuration
+    // Theme switching is handled via data-theme attribute on <html>
 })

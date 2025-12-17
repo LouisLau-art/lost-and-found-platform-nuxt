@@ -16,6 +16,9 @@ dist
 *.db-shm
 *.db-wal
 
+# AI Model Cache
+.cache/
+
 # IDE
 .vscode
 .idea

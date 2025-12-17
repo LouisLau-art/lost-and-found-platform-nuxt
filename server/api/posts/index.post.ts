@@ -38,6 +38,9 @@ export default defineEventHandler(async (event) => {
         itemTime: itemTime || null,
         contactInfo: contactInfo || null,
         images: images ? JSON.stringify(images) : null,
+        // Save image embedding if provided (supports AI visual search)
+        imageEmbedding: body.imageEmbedding ? (typeof body.imageEmbedding === 'string' ? body.imageEmbedding : JSON.stringify(body.imageEmbedding)) : null,
+        imageTags: body.imageTags || null,
         categoryId: categoryId || null,
         authorId: session.user.id,
         status: 'pending',

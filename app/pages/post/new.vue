@@ -40,24 +40,76 @@ watch(() => session.value?.user?.email, (email) => {
 })
 
 const imagePreview = ref<string | null>(null)
+const imageEmbedding = ref<number[] | null>(null)
+const imageTags = ref<string[]>([])
+const isAnalyzing = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 // Handle file selection
-function handleFileSelect(event: Event) {
+async function handleFileSelect(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
 
-  // Convert to base64 for MVP simplicity
+  // 1. Preview immediately
   const reader = new FileReader()
   reader.onload = (e) => {
     imagePreview.value = e.target?.result as string
   }
   reader.readAsDataURL(file)
+
+  // 2. Try AI analysis in background (don't block the user)
+  isAnalyzing.value = true
+  imageEmbedding.value = null
+  imageTags.value = []
+
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    
+    toast({
+       title: '正在进行AI视觉分析...',
+       description: file.size > 500000 ? '压缩中...' : '提取图片特征中',
+       toast: 'soft-info',
+       duration: 5000
+    })
+
+    const result = await $fetch<{ success: boolean; embedding?: number[]; tags?: string[]; warning?: string }>('/api/upload/analyze', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (result.success) {
+        if (result.embedding && result.embedding.length > 0) {
+            imageEmbedding.value = result.embedding
+        }
+        if (result.tags && result.tags.length > 0) {
+            imageTags.value = result.tags
+            toast({
+                title: 'AI分析完成',
+                description: `识别到: ${imageTags.value.join(', ')}`,
+                toast: 'soft-success',
+                leading: 'i-ph-sparkle-fill'
+            })
+        } else if (result.warning) {
+            toast({
+                title: '分析跳过', 
+                description: result.warning, 
+                toast: 'soft-warning'
+            })
+        }
+    }
+  } catch (e) {
+    console.error('AI Analysis failed:', e)
+    // Silent fail - AI is optional
+  } finally {
+    isAnalyzing.value = false
+  }
 }
 
 function removeImage() {
   imagePreview.value = null
-  // Reset input value if possible, or just ignore since we use preview for submission
+  imageEmbedding.value = null
+  if (fileInput.value) fileInput.value.value = ''
 }
 
 async function handleSubmit() {
@@ -85,7 +137,7 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
-    const result = await $fetch('/api/posts', {
+    const result = await $fetch<{ success: boolean; post: { id: number } }>('/api/posts', {
       method: 'POST',
       body: {
         title: form.value.title,
@@ -94,7 +146,11 @@ async function handleSubmit() {
         location: form.value.location || null,
         contactInfo: form.value.contactInfo || null,
         categoryId: form.value.categoryId ? Number(form.value.categoryId) : null,
+
+
         images: imagePreview.value ? [imagePreview.value] : [],
+        imageEmbedding: imageEmbedding.value,
+        imageTags: imageTags.value.length > 0 ? imageTags.value.join(',') : null,
       },
     })
 
@@ -106,165 +162,195 @@ async function handleSubmit() {
         closable: true
       })
       navigateTo(`/post/${result.post.id}`)
+    } else {
+        throw new Error('Server returned unsuccessful status')
     }
   } catch (e: any) {
+    console.error('Submit failed:', e)
     toast({
       title: '发布失败',
-      description: e.data?.message || '未知错误',
+      description: e.data?.message || e.message || '未知错误',
       toast: 'soft-red',
       leading: 'i-ph-warning-circle-bold',
       closable: true
     })
-  } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false // Only reset on error. On success, keep it true until navigation completes
   }
+  // Remove finally block to prevent blinking if we are navigating away
 }
+
 </script>
 
 <template>
   <div class="max-w-2xl mx-auto py-8 px-4 sm:px-0">
     <div class="mb-8">
       <h1 class="text-3xl font-bold mb-2">发布信息</h1>
-      <p class="text-muted-foreground">填写物品详情，帮助快速找回或归还</p>
+      <p class="opacity-70">填写物品详情，帮助快速找回或归还</p>
     </div>
 
     <!-- Login prompt -->
-    <UAlert
-      v-if="!session?.user"
-      icon="i-ph-info"
-      title="请先登录"
-      description="您需要登录后才能发布信息"
-      color="warning"
-      variant="soft"
-      class="mb-6"
-    >
-      <template #action>
-        <UButton to="/login" size="xs" variant="solid" color="warning">去登录</UButton>
-      </template>
-    </UAlert>
+    <div v-if="!session?.user" role="alert" class="alert alert-warning mb-6">
+      <span class="i-ph-info text-xl"></span>
+      <div>
+        <h3 class="font-bold">请先登录</h3>
+        <div class="text-xs">您需要登录后才能发布信息</div>
+      </div>
+      <NuxtLink to="/login" class="btn btn-sm">去登录</NuxtLink>
+    </div>
 
     <!-- Type Selector -->
     <div class="grid grid-cols-2 gap-4 mb-8">
       <div
-        class="cursor-pointer rounded-xl border-2 p-4 text-center transition-all hover:bg-muted/50"
-        :class="form.type === 'lost' ? 'border-yellow-500 bg-yellow-500/5 text-yellow-600' : 'border-input'"
+        class="cursor-pointer rounded-xl border-2 p-6 text-center transition-all hover:scale-[1.02]"
+        :class="form.type === 'lost' 
+          ? 'border-warning bg-warning text-warning-content shadow-lg scale-[1.02]' 
+          : 'border-base-300 hover:border-warning/50 hover:bg-warning/5'"
         @click="form.type = 'lost'"
       >
-        <div class="i-ph-magnifying-glass-bold text-3xl mx-auto mb-2" />
-        <div class="font-bold">我丢失了东西</div>
+        <div class="i-ph-magnifying-glass-bold text-4xl mx-auto mb-3" />
+        <div class="font-bold text-lg">我丢失了东西</div>
+        <div v-if="form.type === 'lost'" class="text-xs mt-2 opacity-80">✓ 已选择</div>
       </div>
       <div
-        class="cursor-pointer rounded-xl border-2 p-4 text-center transition-all hover:bg-muted/50"
-        :class="form.type === 'found' ? 'border-green-500 bg-green-500/5 text-green-600' : 'border-input'"
+        class="cursor-pointer rounded-xl border-2 p-6 text-center transition-all hover:scale-[1.02]"
+        :class="form.type === 'found' 
+          ? 'border-success bg-success text-success-content shadow-lg scale-[1.02]' 
+          : 'border-base-300 hover:border-success/50 hover:bg-success/5'"
         @click="form.type = 'found'"
       >
-        <div class="i-ph-hand-heart-bold text-3xl mx-auto mb-2" />
-        <div class="font-bold">我捡到了东西</div>
+        <div class="i-ph-hand-heart-bold text-4xl mx-auto mb-3" />
+        <div class="font-bold text-lg">我捡到了东西</div>
+        <div v-if="form.type === 'found'" class="text-xs mt-2 opacity-80">✓ 已选择</div>
       </div>
     </div>
 
     <!-- Form in Card -->
-    <UCard>
-      <template #content>
+    <div class="card bg-base-100 shadow-xl border border-base-300">
+      <div class="card-body">
         <form @submit.prevent="handleSubmit" class="space-y-6">
 
-          <!-- Image Upload with Standard Components -->
-          <UFormGroup label="物品图片" description="支持上传一张图片，帮助辨认">
+          <!-- Image Upload -->
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text">物品图片</span>
+              <span class="label-text-alt opacity-70">支持上传一张图片，帮助辨认</span>
+            </label>
             <div class="space-y-3">
-              <UInput
-                type="file"
+              <input 
+                type="file" 
                 accept="image/*"
-                leading="i-ph-image"
+                class="file-input file-input-bordered w-full" 
                 @change="handleFileSelect"
-                class="cursor-pointer"
               />
 
-              <div v-if="imagePreview" class="relative w-full h-48 rounded-lg overflow-hidden border border-border group">
+              <div v-if="imagePreview" class="relative w-full h-48 rounded-lg overflow-hidden border border-base-300 group">
                 <img :src="imagePreview" class="w-full h-full object-cover" />
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                   <UButton color="red" size="sm" icon="i-ph-trash" variant="solid" @click="removeImage">移除图片</UButton>
+                   <button type="button" class="btn btn-error btn-sm gap-2" @click="removeImage">
+                     <span class="i-ph-trash" />
+                     移除图片
+                   </button>
                 </div>
               </div>
+              
+              <!-- AI Tags Display -->
+              <div v-if="imageTags.length > 0" class="flex flex-wrap gap-2 mt-2">
+                 <div class="badge badge-primary gap-1" v-for="tag in imageTags" :key="tag">
+                    <span class="i-ph-tag-simple"></span>
+                    {{ tag }}
+                 </div>
+              </div>
+              </div>
             </div>
-          </UFormGroup>
+
 
           <!-- Title -->
-          <UFormGroup label="标题" required>
-            <UInput
-              v-model="form.title"
-              :placeholder="titlePlaceholder"
-              size="lg"
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text">标题 <span class="text-error">*</span></span>
+            </label>
+            <input 
+              v-model="form.title" 
+              type="text" 
+              :placeholder="titlePlaceholder" 
+              class="input input-bordered w-full input-lg" 
             />
-          </UFormGroup>
+          </div>
 
           <!-- Category -->
-          <UFormGroup label="分类">
-            <USelect v-model="form.categoryId">
-              <USelectTrigger>
-                <USelectValue placeholder="选择物品分类" />
-              </USelectTrigger>
-              <USelectContent>
-                <USelectGroup>
-                  <USelectLabel>分类</USelectLabel>
-                  <USelectItem 
-                    v-for="cat in (categories as any[])" 
-                    :key="cat.id" 
-                    :value="String(cat.id)"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span>{{ cat.icon }}</span>
-                      <span>{{ cat.name }}</span>
-                    </div>
-                  </USelectItem>
-                </USelectGroup>
-              </USelectContent>
-            </USelect>
-          </UFormGroup>
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text">分类</span>
+            </label>
+            <select v-model="form.categoryId" class="select select-bordered w-full">
+              <option disabled :value="undefined">选择物品分类</option>
+              <option 
+                v-for="cat in (categories as any[])" 
+                :key="cat.id" 
+                :value="String(cat.id)"
+              >
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
 
           <!-- Content -->
-          <UFormGroup label="详细描述" required>
-            <UInput
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text">详细描述 <span class="text-error">*</span></span>
+            </label>
+            <textarea 
               v-model="form.content"
-              type="textarea"
-              :rows="5"
-              autoresize
               :placeholder="contentPlaceholder"
-              class="w-full"
-            />
-          </UFormGroup>
+              class="textarea textarea-bordered h-32"
+            ></textarea>
+          </div>
 
           <!-- Location -->
-          <UFormGroup label="地点">
-             <UInput
-              v-model="form.location"
-              placeholder="例如：图书馆三楼"
-              leading="i-ph-map-pin"
-            />
-          </UFormGroup>
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text">地点</span>
+            </label>
+            <div class="relative">
+              <input 
+                v-model="form.location"
+                type="text"
+                placeholder="例如：图书馆三楼"
+                class="input input-bordered w-full pl-10"
+              />
+              <span class="i-ph-map-pin absolute left-3 top-3 text-xl opacity-50" />
+            </div>
+          </div>
 
           <!-- Contact -->
-          <UFormGroup label="联系方式">
-            <UInput
-              v-model="form.contactInfo"
-              placeholder="手机号或微信"
-              leading="i-ph-phone"
-            />
-          </UFormGroup>
+          <div class="form-control w-full">
+            <label class="label">
+              <span class="label-text">联系方式</span>
+            </label>
+            <div class="relative">
+              <input 
+                v-model="form.contactInfo"
+                type="text"
+                placeholder="手机号或微信"
+                class="input input-bordered w-full pl-10"
+              />
+              <span class="i-ph-phone absolute left-3 top-3 text-xl opacity-50" />
+            </div>
+          </div>
 
           <!-- Submit -->
           <div class="pt-4">
-            <UButton
-              type="submit"
-              :loading="isSubmitting"
-              :disabled="!session?.user"
-              size="lg"
-              class="w-full"
+            <button 
+              type="submit" 
+              class="btn btn-primary w-full btn-lg"
+              :class="{ 'loading': isSubmitting }"
+              :disabled="isSubmitting || !session?.user"
             >
               {{ isSubmitting ? '发布中...' : '立即发布' }}
-            </UButton>
+            </button>
           </div>
         </form>
-      </template>
-    </UCard>
+      </div>
+    </div>
   </div>
 </template>

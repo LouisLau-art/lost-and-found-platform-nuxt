@@ -15,12 +15,11 @@ useHead({
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <UToaster />
   </div>
 </template>
 
 <style>
 body {
-  @apply bg-background text-foreground antialiased;
+  @apply bg-base-100 text-base-content antialiased;
 }
 </style>

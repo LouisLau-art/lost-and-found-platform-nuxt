@@ -21,6 +21,19 @@ async function markAllAsRead() {
   refresh()
 }
 
+// Handle notification click
+async function handleNotificationClick(notif: any) {
+  // Mark as read if unread
+  if (notif.status === 'unread') {
+    await markAsRead(notif.id)
+  }
+  
+  // Navigate to related post
+  if (notif.relatedPostId) {
+    navigateTo(`/post/${notif.relatedPostId}`)
+  }
+}
+
 // Get icon based on notification type
 function getIcon(type: string) {
   switch (type) {
@@ -37,18 +50,17 @@ function getIcon(type: string) {
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold">
         🔔 消息中心
-        <span v-if="unreadCount > 0" class="ml-2 px-2 py-1 rounded-full bg-red-500 text-white text-sm">
+        <span v-if="unreadCount > 0" class="ml-2 px-2 py-1 rounded-full bg-error text-error-content text-sm">
           {{ unreadCount }}
         </span>
       </h1>
-      <UButton
+      <button
         v-if="unreadCount > 0"
-        variant="ghost"
-        size="sm"
+        class="btn btn-ghost btn-sm"
         @click="markAllAsRead"
       >
         ✅ 全部标为已读
-      </UButton>
+      </button>
     </div>
 
     <!-- Loading -->
@@ -62,10 +74,10 @@ function getIcon(type: string) {
         v-for="notif in notifications"
         :key="notif.id"
         :class="[
-          'p-4 rounded-lg border cursor-pointer hover:ring-2 hover:ring-primary transition',
-          notif.status === 'unread' ? 'border-primary bg-primary/5' : 'border-$una-border opacity-60'
+          'p-4 rounded-lg border cursor-pointer hover:border-primary transition',
+          notif.status === 'unread' ? 'border-primary bg-primary/5' : 'border-base-300 opacity-60'
         ]"
-        @click="notif.relatedPostId && navigateTo(`/post/${notif.relatedPostId}`)"
+        @click="handleNotificationClick(notif)"
       >
         <div class="flex gap-4">
           <div class="flex-shrink-0 text-2xl">
@@ -74,7 +86,7 @@ function getIcon(type: string) {
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="font-semibold">{{ notif.title }}</h3>
-              <span v-if="notif.status === 'unread'" class="px-2 py-0.5 rounded bg-red-500 text-white text-xs">
+              <span v-if="notif.status === 'unread'" class="badge badge-error badge-sm">
                 新
               </span>
             </div>
@@ -84,13 +96,12 @@ function getIcon(type: string) {
             </p>
           </div>
           <div v-if="notif.status === 'unread'" class="flex-shrink-0">
-            <UButton
-              variant="ghost"
-              size="xs"
+            <button
+              class="btn btn-ghost btn-xs"
               @click.stop="markAsRead(notif.id)"
             >
               ✓
-            </UButton>
+            </button>
           </div>
         </div>
       </div>

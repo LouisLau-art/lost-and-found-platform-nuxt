@@ -10,20 +10,26 @@ export default defineNuxtConfig({
 
   // Modules
   modules: [
-    '@una-ui/nuxt',
+    '@unocss/nuxt',
     'nuxt-auth-utils',
   ],
 
-  // Una UI configuration
-  una: {
-    prefix: 'U',
-  },
+  // CSS reset for DaisyUI
+  css: ['@unocss/reset/tailwind.css'],
 
   // Nitro configuration for server
   nitro: {
     experimental: {
       asyncContext: true,
     },
+    // Serve uploads directory as static files
+    publicAssets: [
+      {
+        dir: 'uploads',
+        baseURL: '/uploads',
+        maxAge: 60 * 60 * 24 * 7 // 7 days cache
+      }
+    ]
   },
 
   // Runtime config

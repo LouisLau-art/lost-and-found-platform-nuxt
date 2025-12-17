@@ -37,6 +37,7 @@ export const posts = sqliteTable('posts', {
     contactInfo: text('contact_info'),
     images: text('images'), // JSON array string
     imageTags: text('image_tags'), // AI-generated tags
+    imageEmbedding: text('image_embedding'), // AI-generated vector (JSON array)
     isClaimed: integer('is_claimed', { mode: 'boolean' }).notNull().default(false),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at'),

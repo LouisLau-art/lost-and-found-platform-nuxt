@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
         category,
         status,
         search,
+        authorId,
     } = query as Record<string, string>
 
     const pageNum = parseInt(page)
@@ -32,6 +33,10 @@ export default defineEventHandler(async (event) => {
 
     if (status) {
         conditions.push(eq(posts.status, status))
+    }
+
+    if (authorId) {
+        conditions.push(eq(posts.authorId, parseInt(authorId)))
     }
 
     if (search) {

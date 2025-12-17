@@ -4,6 +4,31 @@ const { data: session, refresh: refreshSession } = await useFetch('/api/auth/me'
 
 const isLoggedIn = computed(() => !!session.value?.user)
 
+// Unread notifications count
+const unreadCount = ref(0)
+
+// Fetch initial unread count
+if (isLoggedIn.value) {
+  const { data: notifData } = await useFetch('/api/notifications')
+  unreadCount.value = notifData.value?.data?.filter((n: any) => n.status === 'unread').length || 0
+  
+  // Setup SSE for real-time notifications
+  if (process.client) {
+    const eventSource = new EventSource('/api/notifications/stream')
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.type === 'notification') {
+        unreadCount.value++
+      }
+    }
+    
+    // Cleanup on unmount
+    onUnmounted(() => {
+      eventSource.close()
+    })
+  }
+}
+
 async function handleLogout() {
   await $fetch('/api/auth/logout', { method: 'POST' })
   await refreshSession()
@@ -11,14 +36,14 @@ async function handleLogout() {
 }
 
 function toggleColorMode() {
-  colorMode.preference = colorMode.preference === 'dark' ? 'light' : 'dark'
+  colorMode.preference.value = colorMode.preference.value === 'dark' ? 'light' : 'dark'
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col">
+  <div class="min-h-screen bg-base-100 transition-colors duration-300 flex flex-col">
     <!-- Header -->
-    <header class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header class="sticky top-0 z-50 border-b border-base-300 bg-base-100/80 backdrop-blur">
       <div class="container mx-auto flex h-16 items-center justify-between px-4">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-2 text-xl font-bold text-primary transition hover:opacity-80">
@@ -28,90 +53,86 @@ function toggleColorMode() {
         
         <!-- Navigation -->
         <nav class="flex items-center gap-2 md:gap-3">
-          <UButton 
+          <NuxtLink 
             to="/post/new" 
-            size="sm"
-            color="primary"
-            class="hidden sm:flex"
-          >
-            <span class="i-ph-plus-bold mr-1" />
+            class="btn btn-primary btn-sm hidden sm:flex gap-1">
+            <span class="i-ph-plus-bold" />
             发布
-          </UButton>
+          </NuxtLink>
           
           <!-- Mobile Publish Icon -->
-          <UButton 
+          <NuxtLink 
             to="/post/new" 
-            size="sm"
-            color="primary"
-            square
-            class="sm:hidden"
-          >
+            class="btn btn-primary btn-sm btn-square sm:hidden">
             <span class="i-ph-plus-bold" />
-          </UButton>
+          </NuxtLink>
 
           <template v-if="isLoggedIn">
-            <UTooltip text="消息通知">
-              <UButton to="/notifications" variant="ghost" size="sm" square>
+            <!-- Notifications -->
+            <div class="tooltip tooltip-bottom" data-tip="消息通知">
+              <NuxtLink to="/notifications" class="btn btn-ghost btn-sm btn-square indicator">
+                <span v-if="unreadCount > 0" class="indicator-item badge badge-error badge-sm text-xs">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
                 <span class="i-ph-bell text-xl" />
-              </UButton>
-            </UTooltip>
+              </NuxtLink>
+            </div>
             
-            <UDropdownMenu>
-              <!-- Trigger -->
-              <UButton variant="ghost" size="sm" class="gap-2 px-2">
-                <UAvatar 
-                  :src="session?.user?.avatar" 
-                  :alt="session?.user?.name" 
-                  size="2xs"
-                />
-                <span class="hidden sm:inline">{{ session?.user?.name }}</span>
-                <span class="i-ph-caret-down text-muted-foreground text-xs" />
-              </UButton>
-
-              <!-- Content -->
-              <template #content>
-                <div class="min-w-[12rem]">
-                  <div class="px-2 py-1.5 text-sm font-semibold">
-                    我的账户
+            <!-- User Dropdown -->
+            <div class="dropdown dropdown-end">
+              <label tabindex="0" class="btn btn-ghost btn-sm gap-2 px-2 cursor-pointer">
+                <div class="avatar">
+                  <div class="w-6 rounded-full">
+                    <img 
+                      v-if="session?.user?.avatar"
+                      :src="session.user.avatar" 
+                      :alt="session.user.name" />
+                    <div v-else class="bg-primary text-primary-content flex items-center justify-center">
+                      <span class="i-ph-user" />
+                    </div>
                   </div>
-                  <UDropdownMenuSeparator />
-                  <UDropdownMenuItem
-                    leading="i-ph-user-circle"
-                    label="个人中心"
-                    @select="navigateTo('/profile')"
-                  />
-                  <UDropdownMenuSeparator />
-                  <UDropdownMenuItem
-                    leading="i-ph-sign-out"
-                    label="退出登录"
-                    class="text-red-500 focus:text-red-500"
-                    @select="handleLogout"
-                  />
                 </div>
-              </template>
-            </UDropdownMenu>
+                <span class="hidden sm:inline">{{ session?.user?.name }}</span>
+                <span class="i-ph-caret-down text-xs opacity-70" />
+              </label>
+              <ul tabindex="0" class="dropdown-content z-[100] menu p-2 shadow-xl bg-base-100/95 backdrop-blur-md rounded-box w-52 mt-2 border border-base-300">
+                <li class="menu-title">
+                  <span>我的账户</span>
+                </li>
+                <li>
+                  <NuxtLink to="/profile">
+                    <span class="i-ph-user-circle" />
+                    个人中心
+                  </NuxtLink>
+                </li>
+                <div class="divider my-0"></div>
+                <li>
+                  <a @click="handleLogout" class="text-error">
+                    <span class="i-ph-sign-out" />
+                    退出登录
+                  </a>
+                </li>
+              </ul>
+            </div>
           </template>
           
           <template v-else>
             <div class="flex items-center gap-2">
-              <UButton to="/login" variant="ghost" size="sm">登录</UButton>
-              <UButton to="/register" variant="outline" size="sm">注册</UButton>
+              <NuxtLink to="/login" class="btn btn-ghost btn-sm">登录</NuxtLink>
+              <NuxtLink to="/register" class="btn btn-outline btn-sm">注册</NuxtLink>
             </div>
           </template>
 
-          <div class="w-px h-6 bg-border mx-1"></div>
+          <div class="w-px h-6 bg-base-300 mx-1"></div>
 
           <!-- Theme toggle -->
-          <UTooltip :text="colorMode.preference === 'dark' ? '切换亮色模式' : '切换暗色模式'">
-            <UButton
-              variant="ghost"
-              size="sm"
-              square
-              @click="toggleColorMode"
-            >
-              <span class="dark:i-ph-moon-bold i-ph-sun-bold text-xl" />
-            </UButton>
-          </UTooltip>
+          <ClientOnly>
+            <div class="tooltip tooltip-bottom" :data-tip="colorMode.preference.value === 'dark' ? '切换亮色模式' : '切换暗色模式'">
+              <button
+                class="btn btn-ghost btn-sm btn-square"
+                @click="toggleColorMode">
+                <span :class="colorMode.preference.value === 'dark' ? 'i-ph-moon-bold' : 'i-ph-sun-bold'" class="text-xl" />
+              </button>
+            </div>
+          </ClientOnly>
         </nav>
       </div>
     </header>
@@ -122,34 +143,17 @@ function toggleColorMode() {
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-border py-8 mt-auto bg-muted/20">
-      <div class="container mx-auto px-4 text-center text-muted-foreground text-sm">
+    <footer class="border-t border-base-300 py-8 mt-auto bg-base-200/50">
+      <div class="container mx-auto px-4 text-center opacity-70 text-sm">
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
           <p>&copy; 2025 校园失物招领平台</p>
-          <span class="hidden sm:inline text-border">|</span>
-          <p>Built with Nuxt + Una UI</p>
+          <span class="hidden sm:inline opacity-30">|</span>
+          <p>Built with Nuxt + DaisyUI</p>
         </div>
       </div>
     </footer>
+    
+    <!-- Toast Notifications -->
+    <AppToast />
   </div>
 </template>
-
-<style>
-/* Global resets and utility fixes */
-html, body {
-  height: 100%;
-}
-#__nuxt {
-  height: 100%;
-}
-
-.bg-background {
-  background-color: rgb(var(--una-background));
-}
-.text-foreground {
-  color: rgb(var(--una-foreground));
-}
-.border-border {
-  border-color: rgb(var(--una-border));
-}
-</style>
