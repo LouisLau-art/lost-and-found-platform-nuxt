@@ -16,7 +16,6 @@
     "dependencies": {
         "@ameinhardt/unocss-preset-daisy": "1.1.8",
         "@xenova/transformers": "latest",
-        "bcrypt": "latest",
         "better-sqlite3": "latest",
         "daisyui": "4.12.24",
         "drizzle-orm": "latest",
@@ -25,10 +24,7 @@
         "sharp": "^0.34.5"
     },
     "devDependencies": {
-        "@iconify-json/lucide": "^1.2.81",
         "@iconify-json/ph": "latest",
-        "@iconify-json/tabler": "^1.2.24",
-        "@types/bcrypt": "latest",
         "@types/better-sqlite3": "latest",
         "@unocss/nuxt": "^66.5.10",
         "@unocss/reset": "^66.5.10",
