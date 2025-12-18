@@ -1,9 +1,9 @@
 # 校园失物招领平台 (Lost & Found Platform Next)
 
-[![Nuxt 4](https://img.shields.io/badge/Nuxt-4.0-00DC82?logo=nuxt.js&logoColor=white)](https://nuxt.com/)
-[![Vue 3](https://img.shields.io/badge/Vue-3.0-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![DaisyUI](https://img.shields.io/badge/DaisyUI-4.0-5A0EF8?logo=daisyui&logoColor=white)](https://daisyui.com/)
+[![Nuxt 4](https://img.shields.io/badge/Nuxt-4.2.2-00DC82?logo=nuxt.js&logoColor=white)](https://nuxt.com/)
+[![Vue 3](https://img.shields.io/badge/Vue-3.5.2-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![DaisyUI](https://img.shields.io/badge/DaisyUI-4.12.24-5A0EF8?logo=daisyui&logoColor=white)](https://daisyui.com/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle-ORM-C5F74F?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
 [![Transformers.js](https://img.shields.io/badge/AI-Transformers.js-FFD21E?logo=huggingface&logoColor=black)](https://huggingface.co/docs/transformers.js)
 
