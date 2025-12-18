@@ -11,11 +11,13 @@
         "postinstall": "nuxt prepare",
         "db:generate": "drizzle-kit generate",
         "db:push": "drizzle-kit push",
-        "db:studio": "drizzle-kit studio"
+        "db:studio": "drizzle-kit studio",
+        "test": "vitest",
+        "test:run": "vitest run"
     },
     "dependencies": {
         "@ameinhardt/unocss-preset-daisy": "1.1.8",
-        "@xenova/transformers": "latest",
+        "@xenova/transformers": "^2.17.2",
         "better-sqlite3": "latest",
         "daisyui": "4.12.24",
         "drizzle-orm": "latest",
@@ -25,11 +27,15 @@
     },
     "devDependencies": {
         "@iconify-json/ph": "latest",
+        "@nuxt/test-utils": "^3.21.0",
         "@types/better-sqlite3": "latest",
         "@unocss/nuxt": "^66.5.10",
         "@unocss/reset": "^66.5.10",
+        "@vue/test-utils": "^2.4.6",
         "drizzle-kit": "latest",
+        "happy-dom": "^20.0.11",
         "typescript": "latest",
+        "vitest": "^4.0.16",
         "vue-tsc": "latest"
     }
 }

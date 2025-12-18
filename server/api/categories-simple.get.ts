@@ -1,10 +1,11 @@
-import { db, categories } from '~~/server/database'
+import { CATEGORIES, type Category } from '~~/server/utils/categories'
 
-export default defineEventHandler(async () => {
-    const allCategories = await db.select({
-        id: categories.id,
-        name: categories.name,
-        icon: categories.icon
-    }).from(categories).all()
-    return allCategories
+export default defineEventHandler(() => {
+    // 返回简化版分类（id, name, emoji）
+    return CATEGORIES.map((c: Category) => ({
+        id: c.id,
+        name: c.name,
+        emoji: c.emoji
+    }))
 })
+

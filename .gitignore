@@ -12,11 +12,12 @@ dist
 !.env.example
 
 # Database files (local development)
-*.db
-*.db-shm
-*.db-wal
+# *.db
+# *.db-shm
+# *.db-wal
 
 # AI Model Cache
+.models/
 .cache/
 
 # IDE

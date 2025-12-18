@@ -289,7 +289,7 @@ async function handleSubmit() {
                 :key="cat.id" 
                 :value="String(cat.id)"
               >
-                {{ cat.name }}
+                {{ cat.emoji }} {{ cat.name }}
               </option>
             </select>
           </div>

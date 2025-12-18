@@ -42,7 +42,7 @@ export const posts = sqliteTable('posts', {
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at'),
     authorId: integer('author_id').notNull().references(() => users.id),
-    categoryId: integer('category_id').references(() => categories.id),
+    categoryId: integer('category_id'), // 分类ID（引用静态 CATEGORIES 常量，无外键约束）
 })
 
 // ============ Comments ============

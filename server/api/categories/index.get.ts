@@ -1,6 +1,5 @@
-import { db, categories } from '~~/server/database'
+import { CATEGORIES } from '~~/server/utils/categories'
 
-export default defineEventHandler(async () => {
-    const allCategories = await db.select().from(categories).all()
-    return allCategories
+export default defineEventHandler(() => {
+    return CATEGORIES
 })

@@ -210,6 +210,46 @@ async function processClaim(claimId: number, action: 'approve' | 'reject') {
   }
 }
 
+// 更新帖子状态（作者手动标记已解决/关闭）
+const isUpdatingStatus = ref(false)
+
+async function updatePostStatus(status: 'resolved' | 'closed' | 'pending') {
+  isUpdatingStatus.value = true
+  
+  try {
+    await $fetch(`/api/posts/${postId}/status`, {
+      method: 'PATCH',
+      body: { status },
+    })
+    
+    const messages = {
+      resolved: { title: '已标记为已解决', desc: '帖子状态已更新' },
+      closed: { title: '帖子已关闭', desc: '帖子不再接受申请' },
+      pending: { title: '帖子已重新开放', desc: '帖子状态已恢复' }
+    }
+    
+    toast({
+      title: messages[status].title,
+      description: messages[status].desc,
+      toast: 'soft-success',
+      leading: 'i-ph-check-circle-bold',
+      closable: true
+    })
+    
+    await refresh()
+  } catch (e: any) {
+    toast({
+      title: '操作失败',
+      description: e.data?.message || '未知错误',
+      toast: 'soft-red',
+      leading: 'i-ph-warning-circle-bold',
+      closable: true
+    })
+  } finally {
+    isUpdatingStatus.value = false
+  }
+}
+
 </script>
 
 <template>
@@ -242,7 +282,42 @@ async function processClaim(claimId: number, action: 'approve' | 'reject') {
              >
                {{ post.status === 'resolved' ? '已解决' : post.status === 'closed' ? '已关闭' : '进行中' }}
              </div>
-             <span class="text-xs opacity-50 ml-auto">
+             
+             <!-- 作者操作按钮 -->
+             <div v-if="isAuthor" class="ml-auto flex items-center gap-2">
+               <template v-if="post.status === 'pending'">
+                 <button 
+                   class="btn btn-success btn-sm gap-1"
+                   :class="{ 'loading': isUpdatingStatus }"
+                   :disabled="isUpdatingStatus"
+                   @click="updatePostStatus('resolved')"
+                 >
+                   <span class="i-ph-check-circle" />
+                   {{ post.itemType === 'lost' ? '已找到' : '已归还' }}
+                 </button>
+                 <button 
+                   class="btn btn-ghost btn-sm gap-1"
+                   :class="{ 'loading': isUpdatingStatus }"
+                   :disabled="isUpdatingStatus"
+                   @click="updatePostStatus('closed')"
+                 >
+                   <span class="i-ph-x-circle" />
+                   关闭
+                 </button>
+               </template>
+               <button 
+                 v-else
+                 class="btn btn-outline btn-sm gap-1"
+                 :class="{ 'loading': isUpdatingStatus }"
+                 :disabled="isUpdatingStatus"
+                 @click="updatePostStatus('pending')"
+               >
+                 <span class="i-ph-arrow-counter-clockwise" />
+                 重新开放
+               </button>
+             </div>
+             
+             <span v-if="!isAuthor" class="text-xs opacity-50 ml-auto">
                ID: #{{ post.id }}
              </span>
           </div>
@@ -358,7 +433,7 @@ async function processClaim(claimId: number, action: 'approve' | 'reject') {
               @click="isLoggedIn ? (hasUserClaimed ? null : showClaimDialog = true) : navigateTo('/login')"
             >
               <span :class="hasUserClaimed ? 'i-ph-check-circle mr-2' : 'i-ph-hand-pointing mr-2'" />
-              {{ hasUserClaimed ? '已提交申请' : '认领物品' }}
+              {{ hasUserClaimed ? '已提交申请' : (post.itemType === 'lost' ? '我找到了' : '认领物品') }}
             </button>
           </div>
         </div>
@@ -531,7 +606,7 @@ async function processClaim(claimId: number, action: 'approve' | 'reject') {
                 <div class="flex-1">
                   <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-2">
-                      <span class="font-bold text-sm">{{ comment.authorName }}</span>
+                      <NuxtLink :to="`/user/${comment.authorId}`" class="font-bold text-sm hover:text-primary transition-colors">{{ comment.authorName }}</NuxtLink>
                       <span class="text-xs opacity-50">{{ new Date(comment.createdAt).toLocaleDateString('zh-CN') }}</span>
                     </div>
                   </div>
@@ -565,13 +640,22 @@ async function processClaim(claimId: number, action: 'approve' | 'reject') {
     <!-- Claim Dialog -->
     <div class="modal" :class="{ 'modal-open': showClaimDialog }">
       <div class="modal-box">
-        <h3 class="font-bold text-lg">提交认领申请</h3>
-        <p class="py-4 opacity-70">请详细描述物品特征、丢失时间地点等细节，以证明物品所有权。</p>
+        <h3 class="font-bold text-lg">
+          {{ post?.itemType === 'lost' ? '提交线索 - 我找到了这个物品' : '提交认领申请' }}
+        </h3>
+        <p class="py-4 opacity-70">
+          {{ post?.itemType === 'lost' 
+            ? '请描述您在哪里、什么时候捡到这个物品，帮助失主确认。' 
+            : '请详细描述物品特征、丢失时间地点等细节，以证明物品所有权。' 
+          }}
+        </p>
         
         <div class="py-4">
              <textarea
               v-model="claimMessage"
-              placeholder="例如：手机壳背面有个皮卡丘贴纸，锁屏是..."
+              :placeholder="post?.itemType === 'lost' 
+                ? '例如：我在图书馆三楼捡到的，时间大概是...' 
+                : '例如：手机壳背面有个皮卡丘贴纸，锁屏是...'"
               class="textarea textarea-bordered w-full h-32"
             ></textarea>
         </div>
