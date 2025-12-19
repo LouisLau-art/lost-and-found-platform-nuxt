@@ -6,6 +6,7 @@ definePageMeta({
 const route = useRoute()
 const { data: session } = await useFetch('/api/auth/me')
 const { toast } = useToast()
+const { triggerRefresh } = useNotifications()
 
 // Initialize type from query param
 const initialType = route.query.type === 'found' ? 'found' : 'lost'
@@ -161,6 +162,8 @@ async function handleSubmit() {
         leading: 'i-ph-check-circle-bold',
         closable: true
       })
+      // Trigger notification refresh (AI matching may have created new notifications)
+      setTimeout(() => triggerRefresh(), 1000)
       navigateTo(`/post/${result.post.id}`)
     } else {
         throw new Error('Server returned unsuccessful status')

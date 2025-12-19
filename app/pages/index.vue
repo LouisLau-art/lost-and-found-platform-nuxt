@@ -176,9 +176,11 @@ async function toggleLike(postId: number, event: Event) {
 
           <div class="p-0 pt-4 mt-auto border-t border-base-300 flex items-center justify-between">
             <div class="flex items-center gap-2 text-xs opacity-70">
-              <NuxtLink :to="`/user/${post.authorId}`" class="font-medium hover:text-primary hover:opacity-100 transition-colors" @click.stop>
+              <span 
+                class="font-medium hover:text-primary hover:opacity-100 transition-colors cursor-pointer" 
+                @click.stop.prevent="navigateTo(`/user/${post.authorId}`)">
                 {{ post.authorName }}
-              </NuxtLink>
+              </span>
               <span>•</span>
               <span>{{ new Date(post.createdAt).toLocaleDateString('zh-CN') }}</span>
               <span v-if="post.location">• {{ post.location }}</span>

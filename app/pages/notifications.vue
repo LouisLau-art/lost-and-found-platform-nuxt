@@ -4,6 +4,7 @@ definePageMeta({
   middleware: 'auth'
 })
 
+const { triggerRefresh } = useNotifications()
 const { data: notificationsData, refresh, pending } = await useFetch('/api/notifications')
 
 const notifications = computed(() => notificationsData.value?.data || [])
@@ -13,12 +14,14 @@ const unreadCount = computed(() => notificationsData.value?.unreadCount || 0)
 async function markAsRead(id: number) {
   await $fetch(`/api/notifications/${id}/read`, { method: 'POST' })
   refresh()
+  triggerRefresh() // Update header badge
 }
 
 // Mark all as read
 async function markAllAsRead() {
   await $fetch('/api/notifications/read-all', { method: 'POST' })
   refresh()
+  triggerRefresh() // Update header badge
 }
 
 // Handle notification click

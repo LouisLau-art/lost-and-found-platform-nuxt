@@ -4,27 +4,35 @@ const { data: session, refresh: refreshSession } = await useFetch('/api/auth/me'
 
 const isLoggedIn = computed(() => !!session.value?.user)
 
-// Unread notifications count
+// Unread notifications count with auto-refresh
 const unreadCount = ref(0)
+const { onRefresh } = useNotifications()
 
-// Fetch initial unread count
+// Function to fetch unread count
+async function fetchUnreadCount() {
+  if (!isLoggedIn.value) return
+  try {
+    const data = await $fetch('/api/notifications')
+    unreadCount.value = (data as any)?.data?.filter((n: any) => n.status === 'unread').length || 0
+  } catch (e) {
+    // Silently ignore errors
+  }
+}
+
+// Fetch initial count and setup refresh mechanisms
 if (isLoggedIn.value) {
-  const { data: notifData } = await useFetch('/api/notifications')
-  unreadCount.value = notifData.value?.data?.filter((n: any) => n.status === 'unread').length || 0
+  await fetchUnreadCount()
   
-  // Setup SSE for real-time notifications
-  if (process.client) {
-    const eventSource = new EventSource('/api/notifications/stream')
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'notification') {
-        unreadCount.value++
-      }
-    }
+  // Register for global refresh events (triggered by other components)
+  onRefresh(fetchUnreadCount)
+  
+  // Setup polling for real-time updates (every 30 seconds)
+  if (import.meta.client) {
+    const pollInterval = setInterval(fetchUnreadCount, 30000)
     
     // Cleanup on unmount
     onUnmounted(() => {
-      eventSource.close()
+      clearInterval(pollInterval)
     })
   }
 }

@@ -3,12 +3,10 @@ import {
     presetUno,
     presetIcons,
     presetTypography,
-    presetWebFonts,
     transformerDirectives,
     transformerVariantGroup,
 } from 'unocss'
 import { presetDaisy } from '@ameinhardt/unocss-preset-daisy'
-
 
 export default defineConfig({
     presets: [
@@ -19,15 +17,8 @@ export default defineConfig({
         }),
         presetIcons({
             scale: 1.2,
-            cdn: 'https://esm.sh/',
         }),
         presetTypography(),
-        presetWebFonts({
-            fonts: {
-                sans: 'Inter',
-                mono: 'DM Mono',
-            },
-        }),
     ],
     transformers: [
         transformerDirectives(),
